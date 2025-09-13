@@ -22,6 +22,7 @@ EMPATH creates an AI subject that:
 - **Memory System**: The AI maintains and recalls memories like a human would
 - **Emotional Modeling**: Complex emotional states that evolve over time
 - **Personality Traits**: Persistent personality characteristics that affect behavior
+- **Ambition Trait**: A new personality trait that influences the AI's drive and goal-oriented behavior
 
 ### Influence Types
 - **Emotional**: Affect mood, stress levels, and emotional states
@@ -29,6 +30,7 @@ EMPATH creates an AI subject that:
 - **Social**: Introduce people, conversations, and social interactions
 - **Cognitive**: Influence thoughts, memories, and decision-making
 - **Physical**: Affect health, energy levels, and physical state
+- **Physiological**: Directly affect physiological states like energy and fatigue
 
 ### AI Model Support
 - **Gemini Integration**: Use Google's Gemini AI for realistic responses
