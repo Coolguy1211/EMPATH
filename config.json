@@ -1,0 +1,25 @@
+{
+    "empath": {
+        "subject": {
+            "name": "Alex",
+            "simulation_speed": 1.0,
+            "update_interval": 5.0,
+            "memory_limit": 1000
+        },
+        "interface": {
+            "auto_update": true,
+            "update_frequency": 3.0,
+            "history_limit": 100
+        },
+        "influences": {
+            "max_concurrent": 10,
+            "default_duration": 60,
+            "max_intensity": 1.0
+        },
+        "web": {
+            "host": "0.0.0.0",
+            "port": 5000,
+            "debug": true
+        }
+    }
+}
