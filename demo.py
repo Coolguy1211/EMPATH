@@ -19,6 +19,7 @@ def print_separator(title=""):
 def print_subject_state(empath):
     """Print current subject state"""
     obs = empath.get_current_observation()
+    personality = empath.subject.personality
     print(f"\n🧠 Current State: {obs['state']}")
     print(f"💭 Thought: {obs['current_thought']}")
     print(f"🎬 Action: {obs['current_action']}")
@@ -30,6 +31,9 @@ def print_subject_state(empath):
     print(f"   Energy: {emotion['energy']:.2f}")
     print(f"   Stress: {emotion['stress']:.2f}")
     print(f"   Confidence: {emotion['confidence']:.2f}")
+
+    print(f"\n👤 Personality:")
+    print(f"   Ambition: {personality.ambition:.2f}")
 
 def demo_basic_observation():
     """Demo basic observation functionality"""
@@ -98,6 +102,19 @@ def demo_influence_system(empath):
     time.sleep(5)
     print_subject_state(empath)
     
+    print("\n🛌 Applying physiological influence (fatigue)...")
+    empath.apply_influence(
+        InfluenceType.PHYSIOLOGICAL,
+        intensity=0.9,
+        duration=20,
+        description="Make the subject feel tired and drained",
+        parameters={'states': {'energy': -0.5, 'stress': 0.2}}
+    )
+
+    print("\n⏳ Waiting 5 seconds to see the effect...")
+    time.sleep(5)
+    print_subject_state(empath)
+
     empath.stop_observation()
 
 def demo_memory_system(empath):

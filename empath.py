@@ -34,6 +34,7 @@ class InfluenceType(Enum):
     EMOTIONAL = "emotional"  # Affect mood, stress levels
     COGNITIVE = "cognitive"  # Influence thoughts, memories
     PHYSICAL = "physical"  # Affect health, energy levels
+    PHYSIOLOGICAL = "physiological"
 
 
 @dataclass
@@ -60,6 +61,7 @@ class SubjectPersonality:
     creativity: float
     empathy: float
     curiosity: float
+    ambition: float
 
 
 @dataclass
@@ -117,7 +119,8 @@ class EMPATHSubject:
             neuroticism=random.uniform(0.1, 0.6),
             creativity=random.uniform(0.3, 0.8),
             empathy=random.uniform(0.4, 0.9),
-            curiosity=random.uniform(0.3, 0.8)
+            curiosity=random.uniform(0.3, 0.8),
+            ambition=random.uniform(0.2, 0.8)
         )
         
         self.emotion = SubjectEmotion(
@@ -241,9 +244,9 @@ class EMPATHSubject:
             self.state = SubjectState.REFLECTING
         elif self.emotion.happiness > 0.6 and self.personality.extraversion > 0.5:
             self.state = SubjectState.SOCIALIZING
-        elif self.personality.conscientiousness > 0.6:
+        elif self.personality.conscientiousness > 0.6 or self.personality.ambition > 0.7:
             self.state = SubjectState.WORKING
-        elif self.personality.curiosity > 0.6:
+        elif self.personality.curiosity > 0.6 or self.personality.ambition > 0.6:
             self.state = SubjectState.LEARNING
         elif self.personality.creativity > 0.6:
             self.state = SubjectState.CREATING
@@ -359,6 +362,14 @@ class EMPATHSubject:
                     tags=['social', 'influence']
                 )
                 self.memories.append(memory)
+
+        elif influence.type == InfluenceType.PHYSIOLOGICAL:
+            # Affect physiological states like energy and stress
+            for state, change in influence.parameters.get('states', {}).items():
+                if hasattr(self.emotion, state):
+                    current_value = getattr(self.emotion, state)
+                    new_value = max(0.0, min(1.0, current_value + change * influence.intensity))
+                    setattr(self.emotion, state, new_value)
     
     def apply_influence(self, influence: Influence):
         """Apply a new influence to the subject"""

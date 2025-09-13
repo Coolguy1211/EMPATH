@@ -245,7 +245,8 @@ def get_personality():
             'neuroticism': personality.neuroticism,
             'creativity': personality.creativity,
             'empathy': personality.empathy,
-            'curiosity': personality.curiosity
+            'curiosity': personality.curiosity,
+            'ambition': personality.ambition
         }
     })
 
