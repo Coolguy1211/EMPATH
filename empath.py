@@ -456,6 +456,16 @@ class EMPATHInterface:
         sorted_influences = sorted(self.influences_applied, key=lambda i: i.timestamp, reverse=True)
         return [asdict(inf) for inf in sorted_influences[:limit]]
     
+    def get_emotion_history(self) -> List[Dict[str, Any]]:
+        """Get history of emotional states for analytics"""
+        emotion_history = []
+        for obs in self.observations:
+            emotion_history.append({
+                'timestamp': obs.timestamp,
+                'emotion': asdict(obs.emotion)
+            })
+        return emotion_history
+
     def export_data(self) -> Dict[str, Any]:
         """Export all observation and influence data"""
         # Convert observations to JSON-serializable format
