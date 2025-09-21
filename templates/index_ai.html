@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EMPATH AI - Enhanced AI Subject Observation Interface</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -537,6 +538,12 @@
                 </div>
             </div>
 
+            <!-- Emotion Analytics -->
+            <div class="card">
+                <h2>📈 Emotion Analytics</h2>
+                <canvas id="emotion-chart" width="400" height="200"></canvas>
+            </div>
+
             <!-- AI Conversation History -->
             <div class="card">
                 <h2>🗣️ AI Conversation History</h2>
@@ -560,6 +567,7 @@
 
     <script>
         let updateInterval;
+        let emotionChart;
         
         // Initialize the interface
         async function init() {
@@ -908,6 +916,80 @@
         
         // Load history periodically
         setInterval(loadObservationHistory, 10000);
+
+        // Initialize and update emotion chart
+        function initEmotionChart() {
+            const ctx = document.getElementById('emotion-chart').getContext('2d');
+            emotionChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'second'
+                            }
+                        },
+                        y: {
+                            min: -1,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        async function updateEmotionChart() {
+            try {
+                const response = await fetch('/api/analytics/emotion');
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                const emotionHistory = data.emotion_history;
+                const labels = emotionHistory.map(d => new Date(d.timestamp * 1000));
+
+                const emotions = ['happiness', 'sadness', 'anger', 'fear', 'surprise', 'disgust', 'stress', 'energy', 'confidence'];
+                const datasets = emotions.map(emotion => {
+                    return {
+                        label: emotion.charAt(0).toUpperCase() + emotion.slice(1),
+                        data: emotionHistory.map(d => d.emotion[emotion]),
+                        borderColor: getRandomColor(),
+                        fill: false,
+                        tension: 0.1
+                    };
+                });
+
+                emotionChart.data.labels = labels;
+                emotionChart.data.datasets = datasets;
+                emotionChart.update();
+
+            } catch (error) {
+                console.error('Error updating emotion chart:', error);
+            }
+        }
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initEmotionChart();
+            updateEmotionChart();
+            setInterval(updateEmotionChart, 5000);
+        });
     </script>
 </body>
 </html>

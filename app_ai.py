@@ -16,54 +16,48 @@ import uuid
 app = Flask(__name__)
 app.secret_key = 'empath_ai_secret_key_2024'
 
-# Global EMPATH instance
-empath_interface = None
-empath_thread = None
-ai_model_type = AIModelType.MOCK
-
-def start_empath_background():
-    """Start EMPATH in background thread"""
-    global empath_interface, empath_thread, ai_model_type
-    
-    if empath_interface is None:
+# Store EMPATH instance on the app context
+def get_empath_interface():
+    if not hasattr(app, 'empath_interface'):
         # Determine AI model type from environment or config
         gemini_key = os.getenv('GEMINI_API_KEY')
         ollama_url = os.getenv('OLLAMA_URL', 'http://localhost:11434')
         
         if gemini_key:
             config = create_gemini_config(gemini_key)
-            ai_model_type = AIModelType.GEMINI
+            app.ai_model_type = AIModelType.GEMINI
         elif os.getenv('USE_OLLAMA', 'false').lower() == 'true':
             config = create_ollama_config(base_url=ollama_url)
-            ai_model_type = AIModelType.OLLAMA
+            app.ai_model_type = AIModelType.OLLAMA
         else:
             config = create_mock_config()
-            ai_model_type = AIModelType.MOCK
+            app.ai_model_type = AIModelType.MOCK
         
-        empath_interface = EMPATHWithAI(config)
-        empath_interface.start_observation()
+        app.empath_interface = EMPATHWithAI(config)
+        app.empath_interface.start_observation()
         
         # Start background thread to periodically update observations
-        empath_thread = threading.Thread(target=update_observations_loop, daemon=True)
-        empath_thread.start()
+        app.empath_thread = threading.Thread(target=update_observations_loop, daemon=True)
+        app.empath_thread.start()
+    return app.empath_interface
 
 def update_observations_loop():
     """Background loop to update observations"""
     while True:
-        if empath_interface:
-            empath_interface.get_current_observation()
+        if hasattr(app, 'empath_interface'):
+            app.empath_interface.get_current_observation()
         time.sleep(5)  # Update every 5 seconds
 
 @app.route('/')
 def index():
     """Main EMPATH interface"""
+    get_empath_interface()  # Ensure it's initialized
     return render_template('index_ai.html')
 
 @app.route('/api/status')
 def get_status():
     """Get current status of the AI subject"""
-    if not empath_interface:
-        return jsonify({'error': 'EMPATH not initialized'}), 400
+    empath_interface = get_empath_interface()
     
     observation = empath_interface.get_current_observation()
     memories = empath_interface.empath_interface.subject.get_memories(5)
@@ -76,15 +70,14 @@ def get_status():
         'active_influences': len(empath_interface.empath_interface.subject.active_influences),
         'total_observations': len(empath_interface.empath_interface.observations),
         'total_influences': len(empath_interface.empath_interface.influences_applied),
-        'ai_model_type': ai_model_type.value,
+        'ai_model_type': app.ai_model_type.value,
         'ai_model_name': empath_interface.ai_model.config.model_name
     })
 
 @app.route('/api/influence', methods=['POST'])
 def apply_influence():
     """Apply an influence to the AI subject"""
-    if not empath_interface:
-        return jsonify({'error': 'EMPATH not initialized'}), 400
+    empath_interface = get_empath_interface()
     
     data = request.json
     influence_type = InfluenceType(data['type'])
@@ -106,8 +99,7 @@ def apply_influence():
 @app.route('/api/chat', methods=['POST'])
 def chat_with_subject():
     """Chat directly with the AI subject"""
-    if not empath_interface:
-        return jsonify({'error': 'EMPATH not initialized'}), 400
+    empath_interface = get_empath_interface()
     
     data = request.json
     message = data.get('message', '')
@@ -136,12 +128,11 @@ def chat_with_subject():
 @app.route('/api/config/ai', methods=['GET', 'POST'])
 def ai_config():
     """Get or update AI model configuration"""
+    empath_interface = get_empath_interface()
+
     if request.method == 'GET':
-        if not empath_interface:
-            return jsonify({'error': 'EMPATH not initialized'}), 400
-        
         return jsonify({
-            'model_type': ai_model_type.value,
+            'model_type': app.ai_model_type.value,
             'model_name': empath_interface.ai_model.config.model_name,
             'temperature': empath_interface.ai_model.config.temperature,
             'max_tokens': empath_interface.ai_model.config.max_tokens
@@ -165,10 +156,10 @@ def ai_config():
             else:
                 config = create_mock_config()
             
-            # Update the global interface
-            global empath_interface
+            # Update the interface on the app context
             empath_interface.ai_model.config = config
             empath_interface.ai_model.clear_conversation_history()
+            app.ai_model_type = AIModelType(model_type)
             
             return jsonify({
                 'success': True,
@@ -181,9 +172,7 @@ def ai_config():
 @app.route('/api/history/observations')
 def get_observation_history():
     """Get observation history"""
-    if not empath_interface:
-        return jsonify({'error': 'EMPATH not initialized'}), 400
-    
+    empath_interface = get_empath_interface()
     limit = request.args.get('limit', 50, type=int)
     history = empath_interface.empath_interface.get_observation_history(limit)
     
@@ -192,9 +181,7 @@ def get_observation_history():
 @app.route('/api/history/influences')
 def get_influence_history():
     """Get influence history"""
-    if not empath_interface:
-        return jsonify({'error': 'EMPATH not initialized'}), 400
-    
+    empath_interface = get_empath_interface()
     limit = request.args.get('limit', 20, type=int)
     history = empath_interface.empath_interface.get_influence_history(limit)
     
@@ -203,18 +190,14 @@ def get_influence_history():
 @app.route('/api/history/conversation')
 def get_conversation_history():
     """Get AI conversation history"""
-    if not empath_interface:
-        return jsonify({'error': 'EMPATH not initialized'}), 400
-    
+    empath_interface = get_empath_interface()
     history = empath_interface.get_conversation_history()
     return jsonify({'conversation': history})
 
 @app.route('/api/memories')
 def get_memories():
     """Get AI subject's memories"""
-    if not empath_interface:
-        return jsonify({'error': 'EMPATH not initialized'}), 400
-    
+    empath_interface = get_empath_interface()
     limit = request.args.get('limit', 20, type=int)
     memories = empath_interface.empath_interface.subject.get_memories(limit)
     
@@ -223,18 +206,14 @@ def get_memories():
 @app.route('/api/export')
 def export_data():
     """Export all EMPATH data including AI conversations"""
-    if not empath_interface:
-        return jsonify({'error': 'EMPATH not initialized'}), 400
-    
+    empath_interface = get_empath_interface()
     data = empath_interface.export_data()
     return jsonify(data)
 
 @app.route('/api/personality')
 def get_personality():
     """Get AI subject's personality traits"""
-    if not empath_interface:
-        return jsonify({'error': 'EMPATH not initialized'}), 400
-    
+    empath_interface = get_empath_interface()
     personality = empath_interface.empath_interface.subject.personality
     return jsonify({
         'personality': {
@@ -249,6 +228,13 @@ def get_personality():
         }
     })
 
+@app.route('/api/analytics/emotion')
+def get_emotion_analytics():
+    """Get emotion history for analytics"""
+    empath_interface = get_empath_interface()
+    emotion_history = empath_interface.empath_interface.get_emotion_history()
+    return jsonify({'emotion_history': emotion_history})
+
 if __name__ == '__main__':
-    start_empath_background()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    get_empath_interface()
+    app.run(debug=False, host='0.0.0.0', port=5000)
